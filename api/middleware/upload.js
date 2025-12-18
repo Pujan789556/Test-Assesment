@@ -9,17 +9,16 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Configure storage
-const multerORM = require('multer-orm');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
+  },
 });
 
 // File filter - only allow images
@@ -39,10 +38,9 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
-  fileFilter: fileFilter
+  fileFilter: fileFilter,
 });
 
 module.exports = upload;
-
