@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Pusher from 'pusher-js';
 import axios from 'axios';
 import './App.css';
 
@@ -19,6 +20,29 @@ function App() {
     fetchMessages();
   }, []);
 
+  useEffect(() => {
+    const pusher = new Pusher(process.env.REACT_APP_PUSHER_KEY, {
+      cluster: process.env.REACT_APP_PUSHER_CLUSTER,
+    });
+    const channel = pusher.subscribe('message-channel');
+    channel.bind('create-message', (message) => {
+      setMessages((prev) => {
+        if (prev.some((msg) => msg.id === message.id)) {
+          return prev;
+        }
+        return [...prev, message];
+      });
+    });
+    channel.bind('delete-message', (messageId) => {
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe('message-channel');
+      pusher.disconnect();
+    };
+  }, []);
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
@@ -162,9 +186,7 @@ function App() {
           {loading && messages.length === 0 ? (
             <div className="loading">Loading messages...</div>
           ) : messages.length === 0 ? (
-            <div className="no-messages">
-              No messages yet. Start the conversation!
-            </div>
+            <div className="no-messages">No messages yet. Start the conversation!</div>
           ) : (
             messages.map((msg) => (
               <div key={msg.id} className="message-item">
@@ -174,18 +196,16 @@ function App() {
                 </div>
                 {msg.image_url && (
                   <div className="message-image">
-                    <img 
-                      src={`${API_BASE_URL}${msg.image_url}`} 
-                      alt="Shared" 
+                    <img
+                      src={`${API_BASE_URL}${msg.image_url}`}
+                      alt="Shared"
                       onError={(e) => {
                         e.target.style.display = 'none';
                       }}
                     />
                   </div>
                 )}
-                {msg.message && (
-                  <div className="message-text">{msg.message}</div>
-                )}
+                {msg.message && <div className="message-text">{msg.message}</div>}
                 <button
                   className="delete-message-btn"
                   onClick={() => handleDeleteMessage(msg.id)}
@@ -200,9 +220,7 @@ function App() {
         </div>
 
         <form className="chat-input-form" onSubmit={handleSendMessage}>
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
+          {error && <div className="error-message">{error}</div>}
 
           <div className="input-group">
             <input
@@ -246,11 +264,7 @@ function App() {
             </label>
           </div>
 
-          <button
-            type="submit"
-            className="send-button"
-            disabled={loading || (!messageText.trim() && !selectedImage)}
-          >
+          <button type="submit" className="send-button" disabled={loading || (!messageText.trim() && !selectedImage)}>
             {loading ? 'Sending...' : 'Send'}
           </button>
         </form>
