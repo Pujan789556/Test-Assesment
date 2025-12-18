@@ -53,6 +53,7 @@ function App() {
   useEffect(() => {
     if (!messageSearchQuery) {
       setNoSearchMessage(false);
+      fetchMessages();
       return;
     }
 
@@ -86,11 +87,8 @@ function App() {
       setLoading(true);
       setError('');
       const response = await axios.get(`${API_BASE_URL}/api/messages/search?q=${query}`);
-      if (response.data.message && response.data.message.length > 0) {
-        setMessages(response.data.messages);
-        return;
-      }
-      setNoSearchMessage(true);
+      setMessages(response.data.messages || []);
+      setNoSearchMessage(response.data.messages.length ? false : true);
     } catch (err) {
       setError('Failed to load messages');
       console.error('Error fetching messages:', err);
