@@ -3,13 +3,14 @@ const router = express.Router();
 const Message = require('../models/Message');
 const upload = require('../middleware/upload');
 const path = require('path');
+const pusherService = require('../lib/pusher');
 
 // Get all messages
 router.get('/', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
-    
+
     const messages = await Message.getAll(limit, offset);
     res.json({ success: true, messages });
   } catch (error) {
@@ -24,21 +25,21 @@ router.post('/', async (req, res) => {
     const { username, message } = req.body;
 
     if (!username || !message) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Username and message are required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Username and message are required',
       });
     }
 
     if (message.trim().length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Message cannot be empty' 
+      return res.status(400).json({
+        success: false,
+        error: 'Message cannot be empty',
       });
     }
 
     const newMessage = await Message.create(username, message.trim());
-
+    pusherService.createMessage(newMessage);
     res.status(201).json({ success: true, message: newMessage });
   } catch (error) {
     console.error('Error creating message:', error);
@@ -52,16 +53,16 @@ router.post('/with-image', upload.single('image'), async (req, res) => {
     const { username, message } = req.body;
 
     if (!username) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Username is required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Username is required',
       });
     }
 
     if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Image file is required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Image file is required',
       });
     }
 
@@ -70,11 +71,11 @@ router.post('/with-image', upload.single('image'), async (req, res) => {
     const messageText = message ? message.trim() : '';
 
     const newMessage = await Message.create(username, messageText, imageUrl);
-
+    pusherService.createMessage(newMessage);
     res.status(201).json({ success: true, message: newMessage });
   } catch (error) {
     console.error('Error creating message with image:', error);
-    
+
     // Clean up uploaded file if message creation failed
     if (req.file) {
       const fs = require('fs');
@@ -84,9 +85,9 @@ router.post('/with-image', upload.single('image'), async (req, res) => {
       }
     }
 
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to create message with image' 
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create message with image',
     });
   }
 });
@@ -95,11 +96,11 @@ router.post('/with-image', upload.single('image'), async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const message = await Message.getById(req.params.id);
-    
+
     if (!message) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Message not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Message not found',
       });
     }
 
@@ -114,14 +115,14 @@ router.get('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const deletedMessage = await Message.delete(req.params.id);
-    
+
     if (!deletedMessage) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Message not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Message not found',
       });
     }
-
+    pusherService.deleteMessage(deletedMessage.id);
     res.json({ success: true, message: 'Message deleted successfully' });
   } catch (error) {
     console.error('Error deleting message:', error);
@@ -130,4 +131,3 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
-
