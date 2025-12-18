@@ -4,6 +4,8 @@ import axios from 'axios';
 import './App.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const APP_PUSHER_KEY = process.env.REACT_APP_PUSHER_KEY;
+const APP_PUSHER_CLUSTER = process.env.REACT_APP_PUSHER_CLUSTER;
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -15,6 +17,7 @@ function App() {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [realTimeMessageAvailable, setRealTimeMessageAvailable] = useState(true);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -23,8 +26,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const pusher = new Pusher(process.env.REACT_APP_PUSHER_KEY, {
-      cluster: process.env.REACT_APP_PUSHER_CLUSTER,
+    if (!APP_PUSHER_KEY || !APP_PUSHER_CLUSTER) {
+      setRealTimeMessageAvailable(false);
+      return;
+    }
+    const pusher = new Pusher(APP_PUSHER_KEY, {
+      cluster: APP_PUSHER_CLUSTER,
     });
     const channel = pusher.subscribe('message-channel');
     channel.bind('create-message', (message) => {
@@ -219,6 +226,7 @@ function App() {
       <header className="App-header">
         <h1>💬 Chat App</h1>
         <p>Send messages and share images</p>
+        {!realTimeMessageAvailable && <div className="info-message">Realtime message is not avaibale!</div>}
       </header>
 
       <main className="chat-container">
