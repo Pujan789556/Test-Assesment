@@ -61,6 +61,7 @@ After completing your challenges:
 **Challenge Completed:**
 
 - **1. Real-time messages with Pusher (backend + frontend):** Implemented realtime message with pusher using pusher and pusher-js
+
   - Created Sandbox channel in pusher.com.
   - Copy API Keys to .env file as required
   - Created an library class _PusherService_ in `pusher.js` and exported its single instance.
@@ -85,3 +86,22 @@ After completing your challenges:
   - Frotend upadtes its local state by:
     - When create-messasge event is received, add new message if not exists, check by unique id
     - Remove message when delete-message event is received, check by id
+
+- **2. Message search endpoint + realtime filter (backend + frontend)**
+
+  - Added route `api/messages/search?q=term`
+  - Use `search` method of Message model.
+
+  - Added Input field to search the message
+  - Debounce using `setTimeOut` of 300ms, to query the messages using the api route above.
+  - When searching, only show the message matching the search query message.
+  - If new messages triggers that matches the search query, it also get displayed. But new message that doesn't match the search query is ignored.
+  - If delete message triggers and that message is in searched messages matching the searchQuery, it also get removed from the messages list.
+  - Not searching, live feed of message is active for all messages.
+
+  **Enviroment Variable**
+
+  - if pusher api key is not set in enviroment variable
+    - it doesn't affect the messaging.
+    - show info of real time message not avaibale in the frontend.
+    - backend wont crashes but is disabled, console with warning message saying pusher is disabled and enviroment variable is missing.
