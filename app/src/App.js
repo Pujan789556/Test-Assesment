@@ -9,6 +9,8 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [username, setUsername] = useState('');
   const [messageText, setMessageText] = useState('');
+  const [messageSearchQuery, setMessageSearchQuery] = useState('');
+  const [noSearchMessage, setNoSearchMessage] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -48,6 +50,19 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (!messageSearchQuery) {
+      setNoSearchMessage(false);
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      searchMessage(messageSearchQuery);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [messageSearchQuery]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -58,6 +73,24 @@ function App() {
       setError('');
       const response = await axios.get(`${API_BASE_URL}/api/messages`);
       setMessages(response.data.messages || []);
+    } catch (err) {
+      setError('Failed to load messages');
+      console.error('Error fetching messages:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchMessage = async (query) => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await axios.get(`${API_BASE_URL}/api/messages/search?q=${query}`);
+      if (response.data.message && response.data.message.length > 0) {
+        setMessages(response.data.messages);
+        return;
+      }
+      setNoSearchMessage(true);
     } catch (err) {
       setError('Failed to load messages');
       console.error('Error fetching messages:', err);
@@ -182,11 +215,23 @@ function App() {
       </header>
 
       <main className="chat-container">
+        <div className="search-input-form ">
+          <input
+            type="text"
+            placeholder="Search Message"
+            value={messageSearchQuery}
+            onChange={(e) => setMessageSearchQuery(e.target.value)}
+            className="message-search-input"
+            disabled={loading}
+          />
+        </div>
         <div className="chat-messages" id="messages-container">
           {loading && messages.length === 0 ? (
             <div className="loading">Loading messages...</div>
           ) : messages.length === 0 ? (
-            <div className="no-messages">No messages yet. Start the conversation!</div>
+            <div className="no-messages">
+              {noSearchMessage ? 'No result found!' : 'No messages yet. Start the conversation!'}
+            </div>
           ) : (
             messages.map((msg) => (
               <div key={msg.id} className="message-item">
