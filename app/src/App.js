@@ -11,6 +11,7 @@ function App() {
   const [messageText, setMessageText] = useState('');
   const [messageSearchQuery, setMessageSearchQuery] = useState('');
   const [noSearchMessage, setNoSearchMessage] = useState(false);
+  const [searchedMessages, setSearchedMessages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -34,9 +35,21 @@ function App() {
         }
         return [...prev, message];
       });
+
+      if (messageSearchQuery) {
+        setSearchedMessages((prev) => {
+          if (prev.some((msg) => msg.id === message.id)) {
+            return prev;
+          }
+          return [message, ...prev];
+        });
+      }
     });
     channel.bind('delete-message', (messageId) => {
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      if (messageSearchQuery) {
+        setSearchedMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      }
     });
 
     return () => {
@@ -53,7 +66,6 @@ function App() {
   useEffect(() => {
     if (!messageSearchQuery) {
       setNoSearchMessage(false);
-      fetchMessages();
       return;
     }
 
@@ -87,7 +99,7 @@ function App() {
       setLoading(true);
       setError('');
       const response = await axios.get(`${API_BASE_URL}/api/messages/search?q=${query}`);
-      setMessages(response.data.messages || []);
+      setSearchedMessages(response.data.messages || []);
       setNoSearchMessage(response.data.messages.length ? false : true);
     } catch (err) {
       setError('Failed to load messages');
@@ -204,6 +216,7 @@ function App() {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+  const displayedMessage = messageSearchQuery ? searchedMessages : messages;
 
   return (
     <div className="App">
@@ -224,14 +237,14 @@ function App() {
           />
         </div>
         <div className="chat-messages" id="messages-container">
-          {loading && messages.length === 0 ? (
+          {loading && displayedMessage.length === 0 ? (
             <div className="loading">Loading messages...</div>
-          ) : messages.length === 0 ? (
+          ) : displayedMessage.length === 0 ? (
             <div className="no-messages">
               {noSearchMessage ? 'No result found!' : 'No messages yet. Start the conversation!'}
             </div>
           ) : (
-            messages.map((msg) => (
+            displayedMessage.map((msg) => (
               <div key={msg.id} className="message-item">
                 <div className="message-header">
                   <span className="message-username">{msg.username}</span>
