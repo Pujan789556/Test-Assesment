@@ -10,7 +10,6 @@ function App() {
   const [username, setUsername] = useState('');
   const [messageText, setMessageText] = useState('');
   const [messageSearchQuery, setMessageSearchQuery] = useState('');
-  const [noSearchMessage, setNoSearchMessage] = useState(false);
   const [searchedMessages, setSearchedMessages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -41,7 +40,7 @@ function App() {
           if (prev.some((msg) => msg.id === message.id)) {
             return prev;
           }
-          return [message, ...prev];
+          return [...prev, message];
         });
       }
     });
@@ -58,16 +57,14 @@ function App() {
       pusher.disconnect();
     };
   }, []);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    if (!messageSearchQuery) {
-      setNoSearchMessage(false);
-      return;
-    }
+    if (!messageSearchQuery) return;
 
     const handler = setTimeout(() => {
       searchMessage(messageSearchQuery);
@@ -100,7 +97,6 @@ function App() {
       setError('');
       const response = await axios.get(`${API_BASE_URL}/api/messages/search?q=${query}`);
       setSearchedMessages(response.data.messages || []);
-      setNoSearchMessage(response.data.messages.length ? false : true);
     } catch (err) {
       setError('Failed to load messages');
       console.error('Error fetching messages:', err);
@@ -233,7 +229,6 @@ function App() {
             value={messageSearchQuery}
             onChange={(e) => setMessageSearchQuery(e.target.value)}
             className="message-search-input"
-            disabled={loading}
           />
         </div>
         <div className="chat-messages" id="messages-container">
@@ -241,7 +236,7 @@ function App() {
             <div className="loading">Loading messages...</div>
           ) : displayedMessage.length === 0 ? (
             <div className="no-messages">
-              {noSearchMessage ? 'No result found!' : 'No messages yet. Start the conversation!'}
+              {messageSearchQuery ? 'No result found!' : 'No messages yet. Start the conversation!'}
             </div>
           ) : (
             displayedMessage.map((msg) => (
